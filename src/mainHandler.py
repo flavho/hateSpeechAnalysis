@@ -1,10 +1,11 @@
 import csv
 import nltk
+import os 
 from nltk.tokenize import word_tokenize
 # nltk.download() #if stopwords not downloaded: Coropora -> Stopwords -> download
 stopwordsDe = nltk.corpus.stopwords.words('german')
 stopwordsEn = nltk.corpus.stopwords.words('english')
-
+myPath = os.path.abspath(os.path.dirname(__file__))
 allTweets = []
 
 class Tweet:
@@ -13,7 +14,8 @@ class Tweet:
     self.hatespeech = hatespeech
 
 def loadGermanCsvToTweetObject():
-  with open('C:/Users/flavi/Desktop/hateSpeechAnalysis-master/germanTweets.csv', encoding="utf8", newline='') as csvfile:
+  path = os.path.join(myPath, "..\data\germanTweets.csv")
+  with open(path, encoding="utf8", newline='') as csvfile:
       tweetreader = csv.reader(csvfile, delimiter=',')
       for row in tweetreader:
           tweetText = row[0]
@@ -21,7 +23,8 @@ def loadGermanCsvToTweetObject():
           allTweets.append(item)
 
 def loadEnglishCsvToTweetObject():   
-  with open('C:/Users/flavi/Desktop/hateSpeechAnalysis-master/englishTweets.csv', encoding="utf8", newline='') as csvfile:
+  path = os.path.join(myPath, "..\data\englishTweets.csv")
+  with open(path, encoding="utf8", newline='') as csvfile:
       tweetreader = csv.reader(csvfile, delimiter=';')
       for row in tweetreader:
           tweetText = row[1]
@@ -41,6 +44,7 @@ def removeStopWords(stopwords):
     print(filtered_sentence) 
 
 
-#loadEnglishCsvToTweetObject()
-loadGermanCsvToTweetObject()
-removeStopWords(stopwordsDe)
+loadEnglishCsvToTweetObject()
+#loadGermanCsvToTweetObject()
+#removeStopWords(stopwordsDe)
+removeStopWords(stopwordsEn)
