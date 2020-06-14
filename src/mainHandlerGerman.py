@@ -11,9 +11,11 @@ from sklearn.pipeline import Pipeline
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 from gensim.models import Word2Vec 
 from nltk.tokenize import word_tokenize
+from sklearn.metrics import roc_auc_score
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 #nltk.download() #if stopwords not downloaded: Coropora -> Stopwords -> download
 stopwordsDe = nltk.corpus.stopwords.words('german')
 myPath = os.path.abspath(os.path.dirname(__file__))
@@ -23,7 +25,7 @@ df = ""
 def loadGermanCsvToTweetObject():
     path = os.path.join(myPath, "..\data\germanTweets.csv")
     df = pd.read_csv(path)
-    df.drop(columns=['HatespeechOrNot (Expert 2)','Hatespeech Rating (Expert 2)'], axis=1, inplace=True)
+    df.drop(columns=['HatespeechOrNot (Expert 1)','HatespeechOrNot (Expert 2)'], axis=1, inplace=True)
     return df
     
 
@@ -89,31 +91,44 @@ def formatAllTweetsforNltkDe(train):
       #print(edtitedWoStopWords)
 
 def splitData(df):
-    return  train_test_split(df['Tweet'], df['HatespeechOrNot (Expert 1)'],random_state = 0)
+    return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.25, random_state=42)
+
+
+
 
 def getMostCommonWords(model):
     words = list(model.wv.vocab)
     return words
 
-def createModel(train):
-    model = gensim.models.Word2Vec(train.Tweet, min_count = 7, size = 300, window = 5)
+def createModel(X_train_vectorized,y_train):
+    model = LogisticRegression()
+    model.fit(X_train_vectorized, y_train)
     return model
 
-def tfidVectorizeCommonWords(df):
-    vect = TfidfVectorizer()
-    x = vect.fit_transform(df['Tweet'])
-    print(x)
-    return x
+def tfidVectorizeCommonWords(X_train, vect):
+    X_train_vectorized = vect.transform(X_train)
+    #print(X_train_vectorized)
+    return X_train_vectorized
 
 def main():
     df = loadGermanCsvToTweetObject()
     formatAllTweetsforNltkDe(df)
     X_train, X_test, y_train, y_test = splitData(df)
-    print(X_train)
-    #model = createModel(train)
-    #words = getMostCommonWords(model)
-    #x = tfidVectorizeCommonWords(train)
-    #print(words)
+    vect = TfidfVectorizer().fit(X_train)
+    X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
+    #print(X_train_vectorized)
+    model = createModel(X_train_vectorized,y_train)
+    #print(model)
+    feature_names = np.array(vect.get_feature_names())
+    #print(feature_names)
+    sorted_tfidf_index = model.coef_[0].argsort()
+    #print(sorted_tfidf_index)
+    predictions = model.predict(vect.transform(X_test))
+    print(predictions.type)
+    print(y_test)
+    #roc = roc_auc_score(y_test, predictions)
+    #print(roc)
+
     
 
 
