@@ -124,12 +124,10 @@ def main():
     #print(sorted_tfidf_index)
     predictions = model.predict(vect.transform(X_test))
     print(predictions)
+    y_test = np.array(y_test)
     print(y_test)
+    print(roc_auc_score(y_test, predictions))
 
-    #roc = roc_auc_score(y_test, predictions)
-    #print(roc)
-
-    
 
 
 main()
