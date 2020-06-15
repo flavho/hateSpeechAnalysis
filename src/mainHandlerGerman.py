@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import gensim 
 from sklearn.pipeline import Pipeline
 from nltk.tokenize.treebank import TreebankWordDetokenizer
-from gensim.models import Word2Vec 
 from nltk.tokenize import word_tokenize
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import f1_score
@@ -124,8 +123,9 @@ def main():
     sorted_tfidf_index = model.coef_[0].argsort()
     #print(sorted_tfidf_index)
     predictions = model.predict(vect.transform(X_test))
-    print(predictions.type)
+    print(predictions)
     print(y_test)
+
     #roc = roc_auc_score(y_test, predictions)
     #print(roc)
 
