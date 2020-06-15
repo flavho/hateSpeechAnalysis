@@ -10,11 +10,16 @@ import gensim
 from sklearn.pipeline import Pipeline
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 from nltk.tokenize import word_tokenize
+from scipy.sparse import csr_matrix, hstack
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
+
 from sklearn.feature_extraction.text import TfidfVectorizer
+#classifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.naive_bayes import MultinomialNB
 #nltk.download() #if stopwords not downloaded: Coropora -> Stopwords -> download
 stopwordsDe = nltk.corpus.stopwords.words('german')
 myPath = os.path.abspath(os.path.dirname(__file__))
@@ -94,51 +99,89 @@ def splitData(df):
 
 
 
-
-def getMostCommonWords(model):
-    words = list(model.wv.vocab)
-    return words
-
-def createModel(X_train_vectorized,y_train):
-    model = LogisticRegression()
-    model.fit(X_train_vectorized, y_train)
-    return model
-
 def tfidVectorizeCommonWords(X_train, vect):
     X_train_vectorized = vect.transform(X_train)
     #print(X_train_vectorized)
     return X_train_vectorized
 
-def main():
-    df = loadGermanCsvToTweetObject()
-    formatAllTweetsforNltkDe(df)
+def logRegreAndTfidfVectorizer(df):
+    #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
+    #Tfid Vectorizer
     vect = TfidfVectorizer().fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
-    #print(X_train_vectorized)
-    model = createModel(X_train_vectorized,y_train)
-    #print(model)
-    feature_names = np.array(vect.get_feature_names())
-    #print(feature_names)
+    #create Model
+    model = LogisticRegression()
+    model.fit(X_train_vectorized, y_train)
     sorted_tfidf_index = model.coef_[0].argsort()
-    #print(sorted_tfidf_index)
+    #predict for the Testdataset
     predictions = model.predict(vect.transform(X_test))
     print(predictions)
     y_test = np.array(y_test)
-    print(y_test)
     xTestTweets = np.array(X_test)
-    
-    counter = 0
-    for hate in predictions: 
-        if(hate==0):
-            print("No Hate Speech:")
-            print(xTestTweets[counter])
-        else: 
-            print("Hatespeech detected in:")
-            print(xTestTweets[counter])
-        counter = counter + 1
-        
+    #Print Tweet texts and how they are predictet
+    #counter = 0
+    #for hate in predictions: 
+    #    if(hate==0):
+    #        print("No Hate Speech:")
+    #       print(xTestTweets[counter])
+    #    else: 
+    #        print("Hatespeech detected in:")
+    #       print(xTestTweets[counter])
+    #    counter = counter + 1
+
     print(f"Accuracy is: {roc_auc_score(y_test, predictions)}")
+
+def supVecMacAndTfidfVectorizer(df):
+    X_train, X_test, y_train, y_test = splitData(df)
+    vect = TfidfVectorizer().fit(X_train)
+
+    X_train_vectorized = vect.transform(X_train)
+    X_test_vectorized = vect.transform(X_test)
+
+    x_len = X_train.apply(len)
+    X_train_aug = add_feature(X_train_vectorized, x_len)
+    
+    x_len2 = X_test.apply(len)
+    X_test_aug = add_feature(X_test_vectorized, x_len2)
+    
+    model = SVC(C=10000).fit(X_train_aug, y_train)
+    predictions = model.predict(X_test_aug)
+    print(predictions)
+
+    roc = roc_auc_score(y_test, predictions)
+    print(f"Accuracy is: {roc}")
+
+def add_feature(X, feature_to_add):
+    return hstack([X, csr_matrix(feature_to_add).T], 'csr')
+
+def MultiNaiveBayesAndTfidfVectorizer(df):
+    X_train, X_test, y_train, y_test = splitData(df)
+    vect = TfidfVectorizer(min_df=3).fit(X_train)
+    X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
+    
+    model = MultinomialNB(alpha=0.1)
+    model.fit(X_train_vectorized, y_train)
+
+    predictions = model.predict(vect.transform(X_test))
+    print(predictions)
+    roc = roc_auc_score(y_test, predictions)
+    print(f"Accuracy is: {roc}")
+
+
+def main():
+    df = loadGermanCsvToTweetObject()
+    formatAllTweetsforNltkDe(df)
+
+    #Support Vector Machine & TfidfVectorizer
+    supVecMacAndTfidfVectorizer(df)   
+
+    #Logistic Regression & TfidfVectorizer
+    logRegreAndTfidfVectorizer(df)
+
+    #Multi-Nominal Naive Bayes & TfidfVectorizer
+    MultiNaiveBayesAndTfidfVectorizer(df)
+
 
 main()
   
