@@ -130,7 +130,7 @@ def logRegreAndTfidfVectorizer(df):
     #       print(xTestTweets[counter])
     #    counter = counter + 1
 
-    print(f"Accuracy is: {roc_auc_score(y_test, predictions)}")
+    print(f"Accuracy is of Logreg and Tfidf is: {roc_auc_score(y_test, predictions)}")
 
 def supVecMacAndTfidfVectorizer(df):
     X_train, X_test, y_train, y_test = splitData(df)
@@ -150,7 +150,7 @@ def supVecMacAndTfidfVectorizer(df):
     print(predictions)
 
     roc = roc_auc_score(y_test, predictions)
-    print(f"Accuracy is: {roc}")
+    print(f"Accuracy is of supVec and Tfidf is: {roc}")
 
 def add_feature(X, feature_to_add):
     return hstack([X, csr_matrix(feature_to_add).T], 'csr')
@@ -166,8 +166,7 @@ def MultiNaiveBayesAndTfidfVectorizer(df):
     predictions = model.predict(vect.transform(X_test))
     print(predictions)
     roc = roc_auc_score(y_test, predictions)
-    print(f"Accuracy is: {roc}")
-
+    print(f"Accuracy is of MultiNaive Bayes and Tfidf is: {roc}")
 
 def main():
     df = loadGermanCsvToTweetObject()
