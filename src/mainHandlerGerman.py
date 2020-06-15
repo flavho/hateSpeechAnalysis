@@ -8,7 +8,6 @@ from tkinter import ttk
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import gensim 
 from sklearn.pipeline import Pipeline
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 from nltk.tokenize import word_tokenize
@@ -116,14 +115,17 @@ def tfidVectorizeCommonWords(X_train, vect):
 def logRegreAndTfidfVectorizer():
     iniDf = loadGermanCsvToTweetObject()
     df = formatAllTweetsforNltkDe(iniDf)
-    print(df)
     #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
     #Tfid Vectorizer
     vect = TfidfVectorizer().fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
     #create Model
-    model = LogisticRegression()
+    model = LogisticRegression(C=5.0, class_weight=None, dual=False, fit_intercept=True,
+                   intercept_scaling=1, l1_ratio=None, max_iter=20000,
+                   multi_class='auto', n_jobs=None, penalty='l2',
+                   random_state=0, solver='liblinear', tol=0.01, verbose=0,
+                   warm_start=False)
     model.fit(X_train_vectorized, y_train)
     sorted_tfidf_index = model.coef_[0].argsort()
     #predict for the Testdataset
@@ -159,7 +161,7 @@ def supVecMacAndTfidfVectorizer():
     x_len2 = X_test.apply(len)
     X_test_aug = add_feature(X_test_vectorized, x_len2)
     
-    model = SVC(C=10000).fit(X_train_aug, y_train)
+    model = SVC(C=20000, max_iter=10).fit(X_train_aug, y_train)
     predictions = model.predict(X_test_aug)
     print(predictions)
 
@@ -176,7 +178,7 @@ def multiNaiveBayesAndTfidfVectorizer():
     vect = TfidfVectorizer(min_df=3).fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
     
-    model = MultinomialNB(alpha=0.1)
+    model = MultinomialNB(alpha=0.1,fit_prior=True)
     model.fit(X_train_vectorized, y_train)
 
     predictions = model.predict(vect.transform(X_test))
