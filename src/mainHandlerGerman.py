@@ -43,8 +43,8 @@ def removeStopWordsAndTokenize(stopwords, tweetText):
     for w in word_tokens:
         if w not in stopwords:
             filtered_sentence.append(w)
-    #return TreebankWordDetokenizer().detokenize(filtered_sentence)
-    return filtered_sentence
+    return TreebankWordDetokenizer().detokenize(filtered_sentence)
+    #return filtered_sentence
 
 
 def lowerString(tweetText):
@@ -87,18 +87,23 @@ def removeNonChars(tweetText):
     return re.sub('[^A-Za-z0-9 ]+', '', tweetText)
 
 
-def formatAllTweetsforNltkDe(train):
+def formatAllTweetsforNltkDe(df):
     # takes all Tweets from csv and puts them in Array after they got formated and tokenized
-    for index, row in train.iterrows():
-      tweetText = row['Tweet']
-      newText = lowerString(convertHtml(adressParsing(usernameToEmptyString(removeWhiteSpaces(removeHashtags(trimString(removeNonChars(tweetText))))))))
-      edtitedWoStopWords = removeStopWordsAndTokenize(stopwordsDe,newText)
-      row['Tweet'] = edtitedWoStopWords
-      print(edtitedWoStopWords)
+    dfInput = { 'Tweet': [],'Hatespeech': [] }
+    for index, row in df.iterrows():
+        tweetText = row['Tweet']
+        hatespeechIndicator = row['Hatespeech']
+        newText = lowerString(convertHtml(adressParsing(usernameToEmptyString(removeWhiteSpaces(removeHashtags(trimString(removeNonChars(tweetText))))))))
+        edtitedWoStopWords = removeStopWordsAndTokenize(stopwordsDe,newText)
+        dfInput["Tweet"].append(edtitedWoStopWords)
+        dfInput["Hatespeech"].append(hatespeechIndicator)
+       
+    clearedDf = pd.DataFrame(dfInput, columns = ['Tweet', 'Hatespeech'])
+    return clearedDf
+
+
 
 def splitData(df):
-    print(df["Tweet"])
-    print(df["Hatespeech"])
     return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.3, random_state=42)
 
 
@@ -109,8 +114,8 @@ def tfidVectorizeCommonWords(X_train, vect):
     return X_train_vectorized
 
 def logRegreAndTfidfVectorizer():
-    df = loadGermanCsvToTweetObject()
-    df = formatAllTweetsforNltkDe(df)
+    iniDf = loadGermanCsvToTweetObject()
+    df = formatAllTweetsforNltkDe(iniDf)
     print(df)
     #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
@@ -140,8 +145,8 @@ def logRegreAndTfidfVectorizer():
     print(f"Accuracy is of Logreg and Tfidf is: {roc_auc_score(y_test, predictions)}")
 
 def supVecMacAndTfidfVectorizer():
-    df = loadGermanCsvToTweetObject()
-    #df = formatAllTweetsforNltkDe()
+    iniDf = loadGermanCsvToTweetObject()
+    df = formatAllTweetsforNltkDe(iniDf)
     X_train, X_test, y_train, y_test = splitData(df)
     vect = TfidfVectorizer().fit(X_train)
 
@@ -165,8 +170,8 @@ def add_feature(X, feature_to_add):
     return hstack([X, csr_matrix(feature_to_add).T], 'csr')
 
 def multiNaiveBayesAndTfidfVectorizer():
-    df = loadGermanCsvToTweetObject()
-    #df = formatAllTweetsforNltkDe()
+    iniDf = loadGermanCsvToTweetObject()
+    df = formatAllTweetsforNltkDe(iniDf)
     X_train, X_test, y_train, y_test = splitData(df)
     vect = TfidfVectorizer(min_df=3).fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
@@ -190,8 +195,6 @@ def createGui():
     root.mainloop()
 
 def main():
-    #df = loadGermanCsvToTweetObject()
-    #df = formatAllTweetsforNltkDe(df)
     createGui()
        
 
