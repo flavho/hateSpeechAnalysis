@@ -3,6 +3,8 @@ import nltk
 import os
 import html
 import re
+import tkinter as tk  
+from tkinter import ttk
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,7 +27,6 @@ stopwordsDe = nltk.corpus.stopwords.words('german')
 myPath = os.path.abspath(os.path.dirname(__file__))
 df = ""
 
-
 def loadGermanCsvToTweetObject():
     path = os.path.join(myPath, "..\data\germanTweets.csv")
     df = pd.read_csv(path)
@@ -42,7 +43,8 @@ def removeStopWordsAndTokenize(stopwords, tweetText):
     for w in word_tokens:
         if w not in stopwords:
             filtered_sentence.append(w)
-    return TreebankWordDetokenizer().detokenize(filtered_sentence)
+    #return TreebankWordDetokenizer().detokenize(filtered_sentence)
+    return filtered_sentence
 
 
 def lowerString(tweetText):
@@ -92,9 +94,11 @@ def formatAllTweetsforNltkDe(train):
       newText = lowerString(convertHtml(adressParsing(usernameToEmptyString(removeWhiteSpaces(removeHashtags(trimString(removeNonChars(tweetText))))))))
       edtitedWoStopWords = removeStopWordsAndTokenize(stopwordsDe,newText)
       row['Tweet'] = edtitedWoStopWords
-      #print(edtitedWoStopWords)
+      print(edtitedWoStopWords)
 
 def splitData(df):
+    print(df["Tweet"])
+    print(df["Hatespeech"])
     return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.3, random_state=42)
 
 
@@ -104,7 +108,10 @@ def tfidVectorizeCommonWords(X_train, vect):
     #print(X_train_vectorized)
     return X_train_vectorized
 
-def logRegreAndTfidfVectorizer(df):
+def logRegreAndTfidfVectorizer():
+    df = loadGermanCsvToTweetObject()
+    df = formatAllTweetsforNltkDe(df)
+    print(df)
     #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
     #Tfid Vectorizer
@@ -132,7 +139,9 @@ def logRegreAndTfidfVectorizer(df):
 
     print(f"Accuracy is of Logreg and Tfidf is: {roc_auc_score(y_test, predictions)}")
 
-def supVecMacAndTfidfVectorizer(df):
+def supVecMacAndTfidfVectorizer():
+    df = loadGermanCsvToTweetObject()
+    #df = formatAllTweetsforNltkDe()
     X_train, X_test, y_train, y_test = splitData(df)
     vect = TfidfVectorizer().fit(X_train)
 
@@ -155,7 +164,9 @@ def supVecMacAndTfidfVectorizer(df):
 def add_feature(X, feature_to_add):
     return hstack([X, csr_matrix(feature_to_add).T], 'csr')
 
-def MultiNaiveBayesAndTfidfVectorizer(df):
+def multiNaiveBayesAndTfidfVectorizer():
+    df = loadGermanCsvToTweetObject()
+    #df = formatAllTweetsforNltkDe()
     X_train, X_test, y_train, y_test = splitData(df)
     vect = TfidfVectorizer(min_df=3).fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
@@ -168,18 +179,25 @@ def MultiNaiveBayesAndTfidfVectorizer(df):
     roc = roc_auc_score(y_test, predictions)
     print(f"Accuracy is of MultiNaive Bayes and Tfidf is: {roc}")
 
+def createGui():
+    root = tk.Tk()
+    firstButton = tk.Button(root, text="Support Vector Machine & TfidfVectorizer", command=supVecMacAndTfidfVectorizer)
+    firstButton.pack()
+    secondButton = tk.Button(root, text="Logistic Regression & TfidfVectorizer", command=logRegreAndTfidfVectorizer)
+    secondButton.pack()
+    thirdButton = tk.Button(root, text="Multi-Nominal Naive Bayes & TfidfVectorizer", command=multiNaiveBayesAndTfidfVectorizer)
+    thirdButton.pack()
+    root.mainloop()
+
 def main():
-    df = loadGermanCsvToTweetObject()
-    formatAllTweetsforNltkDe(df)
+    #df = loadGermanCsvToTweetObject()
+    #df = formatAllTweetsforNltkDe(df)
+    createGui()
+       
 
-    #Support Vector Machine & TfidfVectorizer
-    supVecMacAndTfidfVectorizer(df)   
+    
 
-    #Logistic Regression & TfidfVectorizer
-    logRegreAndTfidfVectorizer(df)
-
-    #Multi-Nominal Naive Bayes & TfidfVectorizer
-    MultiNaiveBayesAndTfidfVectorizer(df)
+    
 
 
 main()
