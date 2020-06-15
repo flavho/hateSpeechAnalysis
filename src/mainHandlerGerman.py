@@ -90,7 +90,7 @@ def formatAllTweetsforNltkDe(train):
       #print(edtitedWoStopWords)
 
 def splitData(df):
-    return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.25, random_state=42)
+    return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.3, random_state=42)
 
 
 
@@ -126,9 +126,19 @@ def main():
     print(predictions)
     y_test = np.array(y_test)
     print(y_test)
-    print(roc_auc_score(y_test, predictions))
-
-
+    xTestTweets = np.array(X_test)
+    
+    counter = 0
+    for hate in predictions: 
+        if(hate==0):
+            print("No Hate Speech:")
+            print(xTestTweets[counter])
+        else: 
+            print("Hatespeech detected in:")
+            print(xTestTweets[counter])
+        counter = counter + 1
+        
+    print(f"Accuracy is: {roc_auc_score(y_test, predictions)}")
 
 main()
   
