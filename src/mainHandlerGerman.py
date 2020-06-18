@@ -8,14 +8,15 @@ from tkinter import ttk
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import gensim 
+from collections import Counter
 from sklearn.pipeline import Pipeline
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 from nltk.tokenize import word_tokenize
 from scipy.sparse import csr_matrix, hstack
 from sklearn.metrics import roc_auc_score
-from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
-
+from nltk.probability import FreqDist
 from sklearn.feature_extraction.text import TfidfVectorizer
 #classifier
 from sklearn.linear_model import LogisticRegression
@@ -105,6 +106,35 @@ def formatAllTweetsforNltkDe(df):
 def splitData(df):
     return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.3, random_state=42)
 
+def getCommonWords(df):
+    allString = ""
+    for index, row in df.iterrows():
+        tweetText = row['Tweet']
+        allString+=tweetText
+    split_it = allString.split()
+    counter = Counter(split_it)
+    most_occur = counter.most_common(60) #90 for log regres / 28 for supVec / 60 Bayes
+    return most_occur
+        
+        
+def allowOnlyCommonWords(df, most_occur):
+    
+    dfInput = { 'Tweet': [],'Hatespeech': [] }
+    for index, row in df.iterrows():
+        tweetText = row['Tweet']
+        hatespeechIndicator = row['Hatespeech']
+        word_tokens = word_tokenize(tweetText)
+        filtered_sentence = [] 
+        for w in word_tokens:
+            for value in most_occur:
+                if value[0]==w:
+                    filtered_sentence.append(w)           
+        dfInput["Tweet"].append(TreebankWordDetokenizer().detokenize(filtered_sentence))
+        dfInput["Hatespeech"].append(hatespeechIndicator)
+      
+    clearedDf = pd.DataFrame(dfInput, columns = ['Tweet', 'Hatespeech'])
+    return clearedDf
+    
 
 
 def tfidVectorizeCommonWords(X_train, vect):
@@ -115,33 +145,32 @@ def tfidVectorizeCommonWords(X_train, vect):
 def logRegreAndTfidfVectorizer():
     iniDf = loadGermanCsvToTweetObject()
     df = formatAllTweetsforNltkDe(iniDf)
+    most_occur = getCommonWords(df)
+    df = allowOnlyCommonWords(df, most_occur)
+    #print(df)
     #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
     #Tfid Vectorizer
     vect = TfidfVectorizer().fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
     #create Model
-    model = LogisticRegression(C=5.0, class_weight=None, dual=False, fit_intercept=True,
-                   intercept_scaling=1, l1_ratio=None, max_iter=20000,
-                   multi_class='auto', n_jobs=None, penalty='l2',
-                   random_state=0, solver='liblinear', tol=0.01, verbose=0,
-                   warm_start=False)
+    model = LogisticRegression()
     model.fit(X_train_vectorized, y_train)
     sorted_tfidf_index = model.coef_[0].argsort()
     #predict for the Testdataset
     predictions = model.predict(vect.transform(X_test))
-    print(predictions)
+    #print(predictions)
     y_test = np.array(y_test)
     xTestTweets = np.array(X_test)
     #Print Tweet texts and how they are predictet
-    #counter = 0
+    counter = 0
     #for hate in predictions: 
     #    if(hate==0):
     #        print("No Hate Speech:")
-    #       print(xTestTweets[counter])
+    #        print(xTestTweets[counter])
     #    else: 
     #        print("Hatespeech detected in:")
-    #       print(xTestTweets[counter])
+    #        print(xTestTweets[counter])
     #    counter = counter + 1
 
     print(f"Accuracy is of Logreg and Tfidf is: {roc_auc_score(y_test, predictions)}")
@@ -149,6 +178,8 @@ def logRegreAndTfidfVectorizer():
 def supVecMacAndTfidfVectorizer():
     iniDf = loadGermanCsvToTweetObject()
     df = formatAllTweetsforNltkDe(iniDf)
+    most_occur = getCommonWords(df)
+    df = allowOnlyCommonWords(df, most_occur)
     X_train, X_test, y_train, y_test = splitData(df)
     vect = TfidfVectorizer().fit(X_train)
 
@@ -161,7 +192,7 @@ def supVecMacAndTfidfVectorizer():
     x_len2 = X_test.apply(len)
     X_test_aug = add_feature(X_test_vectorized, x_len2)
     
-    model = SVC(C=20000, max_iter=10).fit(X_train_aug, y_train)
+    model = SVC(C=10000).fit(X_train_aug, y_train)
     predictions = model.predict(X_test_aug)
     print(predictions)
 
@@ -174,11 +205,14 @@ def add_feature(X, feature_to_add):
 def multiNaiveBayesAndTfidfVectorizer():
     iniDf = loadGermanCsvToTweetObject()
     df = formatAllTweetsforNltkDe(iniDf)
+    most_occur = getCommonWords(df)
+    df = allowOnlyCommonWords(df, most_occur)
     X_train, X_test, y_train, y_test = splitData(df)
+
     vect = TfidfVectorizer(min_df=3).fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
     
-    model = MultinomialNB(alpha=0.1,fit_prior=True)
+    model = MultinomialNB(alpha=0.1)
     model.fit(X_train_vectorized, y_train)
 
     predictions = model.predict(vect.transform(X_test))
