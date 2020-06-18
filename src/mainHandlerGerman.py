@@ -4,24 +4,23 @@ import os
 import html
 import re
 import tkinter as tk  
-from tkinter import ttk
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import gensim 
+
+from tkinter import ttk
 from collections import Counter
-from sklearn.pipeline import Pipeline
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 from nltk.tokenize import word_tokenize
 from scipy.sparse import csr_matrix, hstack
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
-from nltk.probability import FreqDist
 from sklearn.feature_extraction.text import TfidfVectorizer
+
 #classifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.naive_bayes import MultinomialNB
+
 #nltk.download() #if stopwords not downloaded: Coropora -> Stopwords -> download
 stopwordsDe = nltk.corpus.stopwords.words('german')
 myPath = os.path.abspath(os.path.dirname(__file__))
@@ -93,7 +92,8 @@ def formatAllTweetsforNltkDe(df):
     for index, row in df.iterrows():
         tweetText = row['Tweet']
         hatespeechIndicator = row['Hatespeech']
-        newText = lowerString(convertHtml(adressParsing(usernameToEmptyString(removeWhiteSpaces(removeHashtags(trimString(removeNonChars(tweetText))))))))
+        newText = lowerString(convertHtml(adressParsing(usernameToEmptyString(
+        removeWhiteSpaces(removeHashtags(trimString(removeNonChars(tweetText))))))))
         edtitedWoStopWords = removeStopWordsAndTokenize(stopwordsDe,newText)
         dfInput["Tweet"].append(edtitedWoStopWords)
         dfInput["Hatespeech"].append(hatespeechIndicator)
@@ -107,6 +107,7 @@ def splitData(df):
     return train_test_split(df["Tweet"], df["Hatespeech"], test_size=0.3, random_state=42)
 
 def getCommonWords(df):
+    #finds the most common words for the dataset
     allString = ""
     for index, row in df.iterrows():
         tweetText = row['Tweet']
@@ -118,8 +119,9 @@ def getCommonWords(df):
         
         
 def allowOnlyCommonWords(df, most_occur):
-    
+    #gets the formated dataframe and the array with the most common words
     dfInput = { 'Tweet': [],'Hatespeech': [] }
+    #Removes all words from the String that are not in the most common words
     for index, row in df.iterrows():
         tweetText = row['Tweet']
         hatespeechIndicator = row['Hatespeech']
@@ -147,7 +149,6 @@ def logRegreAndTfidfVectorizer():
     df = formatAllTweetsforNltkDe(iniDf)
     most_occur = getCommonWords(df)
     df = allowOnlyCommonWords(df, most_occur)
-    #print(df)
     #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
     #Tfid Vectorizer
@@ -159,11 +160,11 @@ def logRegreAndTfidfVectorizer():
     sorted_tfidf_index = model.coef_[0].argsort()
     #predict for the Testdataset
     predictions = model.predict(vect.transform(X_test))
-    #print(predictions)
+    print(predictions)
     y_test = np.array(y_test)
     xTestTweets = np.array(X_test)
     #Print Tweet texts and how they are predictet
-    counter = 0
+    #counter = 0
     #for hate in predictions: 
     #    if(hate==0):
     #        print("No Hate Speech:")
@@ -180,7 +181,9 @@ def supVecMacAndTfidfVectorizer():
     df = formatAllTweetsforNltkDe(iniDf)
     most_occur = getCommonWords(df)
     df = allowOnlyCommonWords(df, most_occur)
+    #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
+    #Tfid Vectorizer
     vect = TfidfVectorizer().fit(X_train)
 
     X_train_vectorized = vect.transform(X_train)
@@ -191,11 +194,11 @@ def supVecMacAndTfidfVectorizer():
     
     x_len2 = X_test.apply(len)
     X_test_aug = add_feature(X_test_vectorized, x_len2)
-    
+    #create Model
     model = SVC(C=10000).fit(X_train_aug, y_train)
     predictions = model.predict(X_test_aug)
     print(predictions)
-
+    # calculate roc
     roc = roc_auc_score(y_test, predictions)
     print(f"Accuracy is of supVec and Tfidf is: {roc}")
 
@@ -207,16 +210,18 @@ def multiNaiveBayesAndTfidfVectorizer():
     df = formatAllTweetsforNltkDe(iniDf)
     most_occur = getCommonWords(df)
     df = allowOnlyCommonWords(df, most_occur)
+    #split Dataset
     X_train, X_test, y_train, y_test = splitData(df)
-
+    #Tfid Vectorizer
     vect = TfidfVectorizer(min_df=3).fit(X_train)
     X_train_vectorized = tfidVectorizeCommonWords(X_train, vect)
-    
+    #create Model
     model = MultinomialNB(alpha=0.1)
     model.fit(X_train_vectorized, y_train)
 
     predictions = model.predict(vect.transform(X_test))
     print(predictions)
+    # calculate roc
     roc = roc_auc_score(y_test, predictions)
     print(f"Accuracy is of MultiNaive Bayes and Tfidf is: {roc}")
 
